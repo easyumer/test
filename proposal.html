@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>...</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Caveat:wght@400;700&family=Inter:wght@300;400&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --noir: #0a0a0f;
+            --deep: #12081f;
+            --purple: #6b2fa0;
+            --magenta: #c71585;
+            --hotpink: #ff1493;
+            --blush: #ffb6c1;
+            --lavender: #d8b4fe;
+            --skull-pink: #ff69b4;
+            --gold: #d4a574;
+            --cream: #faf5f0;
+            --ink: #1a1a2e;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--noir);
+            font-family: 'Cormorant Garamond', serif;
+            color: white;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== CINEMATIC LETTERBOX ===== */
+        .letterbox-top, .letterbox-bottom {
+            position: fixed;
+            left: 0; right: 0;
+            height: 0px;
+            background: #000;
+            z-index: 9000;
+            transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .letterbox-top { top: 0; }
+        .letterbox-bottom { bottom: 0; }
+        .letterbox-on .letterbox-top,
+        .letterbox-on .letterbox-bottom { height: 60px; }
+
+        /* ===== SCENE SYSTEM ===== */
+        .chapter {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+            overflow: hidden;
+        }
+        .chapter.active {
+            opacity: 1;
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        /* ===== CHAPTER TITLE CARDS ===== */
+        .chapter-title-card {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--noir);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+        .chapter-title-card.show { opacity: 1; }
+        .chapter-title-card h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            color: var(--lavender);
+            opacity: 0;
+            transform: translateY(10px);
+            animation: cardFadeIn 1.5s ease forwards 0.5s;
+        }
+        .chapter-title-card h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--blush);
+            margin-top: 12px;
+            opacity: 0;
+            transform: translateY(10px);
+            animation: cardFadeIn 1.5s ease forwards 1s;
+        }
+        @keyframes cardFadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== PARTICLES LAYER ===== */
+        .particles-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: particleDrift var(--dur) ease-in-out infinite;
+            animation-delay: var(--delay);
+        }
+        @keyframes particleDrift {
+            0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+            20% { opacity: var(--max-opacity, 0.6); }
+            80% { opacity: var(--max-opacity, 0.6); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+        }
+
+        /* ===== PETAL PARTICLES ===== */
+        .petal {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: var(--blush);
+            border-radius: 50% 50% 50% 0;
+            opacity: 0;
+            animation: petalFall var(--dur) linear infinite;
+            animation-delay: var(--delay);
+            transform: rotate(var(--rot));
+        }
+        @keyframes petalFall {
+            0% { opacity: 0; transform: translateY(-20px) rotate(0deg); }
+            10% { opacity: 0.7; }
+            90% { opacity: 0.4; }
+            100% { opacity: 0; transform: translateY(100vh) rotate(720deg) translateX(var(--drift)); }
+        }
+
+        /* ===== KUROMI SVG CHARACTER ===== */
+        .kuromi-character {
+            position: relative;
+            width: 180px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        /* ===== CHAPTER 0: THE DIARY OPENS ===== */
+        #ch-diary {
+            background: var(--noir);
+        }
+
+        .diary-scene {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diary-book {
+            width: 300px;
+            height: 380px;
+            position: relative;
+            perspective: 1200px;
+            cursor: pointer;
+        }
+
+        .diary-cover {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, #1a0a2e, #0d0518);
+            border-radius: 4px 15px 15px 4px;
+            border: 2px solid var(--purple);
+            box-shadow: 0 20px 60px rgba(107, 47, 160, 0.3), inset 0 0 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transform-origin: left center;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 2;
+            padding: 30px;
+        }
+
+        .diary-cover.open {
+            transform: rotateY(-160deg);
+        }
+
+        .diary-skull-emblem {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            animation: skullBreath 3s ease-in-out infinite;
+        }
+
+        @keyframes skullBreath {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.3)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 20px rgba(255, 105, 180, 0.6)); }
+        }
+
+        .diary-title-text {
+            font-family: 'Caveat', cursive;
+            font-size: 1.4rem;
+            color: var(--skull-pink);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .diary-subtitle {
+            font-family: 'Caveat', cursive;
+            font-size: 0.9rem;
+            color: rgba(216, 180, 254, 0.5);
+            margin-top: 5px;
+        }
+
+        .diary-lock {
+            width: 24px;
+            height: 30px;
+            border: 2px solid var(--gold);
+            border-radius: 50% 50% 4px 4px;
+            margin-top: 25px;
+            position: relative;
+            transition: all 0.5s ease;
+        }
+
+        .diary-lock::after {
+            content: '';
+            width: 4px;
+            height: 10px;
+            background: var(--gold);
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+
+        .diary-cover.open .diary-lock {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .diary-page {
+            position: absolute;
+            inset: 10px;
+            background: linear-gradient(to bottom, #faf5f0, #f0e8df);
+            border-radius: 2px 12px 12px 2px;
+            padding: 35px 30px;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .diary-page-lines {
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                transparent, transparent 28px,
+                rgba(107, 47, 160, 0.08) 28px, rgba(107, 47, 160, 0.08) 29px
+            );
+            padding-top: 40px;
+            pointer-events: none;
+        }
+
+        .diary-date {
+            font-family: 'Caveat', cursive;
+            font-size: 0.85rem;
+            color: var(--purple);
+            opacity: 0.6;
+            margin-bottom: 15px;
+        }
+
+        .diary-entry {
+            font-family: 'Caveat', cursive;
+            font-size: 1.3rem;
+            color: var(--ink);
+            line-height: 1.9;
+            position: relative;
+            z-index: 2;
+        }
+
+        .diary-entry span {
+            opacity: 0;
+            display: inline;
+            transition: opacity 0.3s ease;
+        }
+        .diary-entry span.show { opacity: 1; }
+
+        .diary-instruction {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9rem;
+            color: var(--lavender);
+            margin-top: 40px;
+            opacity: 0;
+            animation: breathe 3s ease-in-out infinite;
+            animation-delay: 2s;
+            letter-spacing: 2px;
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+
+        /* ===== CHAPTER 1: THE NAMING ===== */
+        #ch-name {
+            background: radial-gradient(ellipse at 50% 80%, #1a0a2e 0%, var(--noir) 70%);
+        }
+
+        .naming-scene {
+            text-align: center;
+            max-width: 500px;
+            padding: 0 20px;
+        }
+
+        .naming-prompt {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            font-style: italic;
+            color: var(--lavender);
+            margin-bottom: 40px;
+            opacity: 0;
+            animation: fadeUp 1.5s ease forwards 0.5s;
+            line-height: 1.8;
+        }
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(15px); }
+        }
+
+        .name-input-area {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeUp 1.5s ease forwards 1.2s;
+        }
+
+        .name-letter {
+            width: 52px;
+            height: 64px;
+            border: none;
+            border-bottom: 2px solid var(--purple);
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-style: italic;
+            color: var(--blush);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .name-letter.filled {
+            border-bottom-color: var(--hotpink);
+        }
+
+        .name-letter.filled::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--hotpink);
+            box-shadow: 0 0 15px var(--hotpink), 0 0 30px rgba(255, 20, 147, 0.3);
+        }
+
+        .name-letter.bloom {
+            animation: letterBloom 0.8s ease forwards;
+        }
+
+        @keyframes letterBloom {
+            0% { transform: scale(1); color: var(--blush); }
+            50% { transform: scale(1.3); color: var(--hotpink); text-shadow: 0 0 30px var(--hotpink); }
+            100% { transform: scale(1.1); color: var(--skull-pink); text-shadow: 0 0 15px rgba(255, 105, 180, 0.5); }
+        }
+
+        .name-glow-ring {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 1px solid rgba(199, 21, 133, 0.1);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 2s;
+            opacity: 0;
+        }
+        .name-glow-ring.expand {
+            transform: translate(-50%, -50%) scale(3);
+            opacity: 0.3;
+        }
+
+        /* ===== CHAPTER 2: THE STORY (Parallax Memories) ===== */
+        #ch-story {
+            background: var(--noir);
+        }
+
+        .story-scroll {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+        }
+        .story-scroll::-webkit-scrollbar { display: none; }
+
+        .story-section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 30px;
+            position: relative;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .story-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .story-quote {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-style: italic;
+            color: var(--blush);
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .story-quote::before {
+            content: '"';
+            font-size: 6rem;
+            position: absolute;
+            top: -40px;
+            left: -20px;
+            color: rgba(199, 21, 133, 0.2);
+            font-family: 'Playfair Display', serif;
+        }
+
+        .story-detail {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: rgba(216, 180, 254, 0.7);
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .story-divider {
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--purple), transparent);
+            margin: 0 auto;
+            margin-top: 30px;
+        }
+
+        .story-bg-element {
+            position: absolute;
+            font-size: 8rem;
+            opacity: 0.03;
+            color: var(--lavender);
+            font-family: 'Playfair Display', serif;
+            pointer-events: none;
+        }
+
+        /* ===== CHAPTER 3: THE CONSTELLATION (What I Love) ===== */
+        #ch-constellation {
+            background: radial-gradient(ellipse at center, #0d0520 0%, #050510 100%);
+        }
+
+        .constellation-canvas { position: absolute; inset: 0; }
+
+        .constellation-word {
+            position: absolute;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            color: var(--lavender);
+            opacity: 0;
+            transition: opacity 1s ease, transform 1s ease;
+            pointer-events: none;
+            letter-spacing: 2px;
+        }
+        .constellation-word.show {
+            opacity: 0.8;
+            transform: translateY(-10px);
+        }
+
+        .constellation-prompt {
+            position: absolute;
+            bottom: 80px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9rem;
+            color: rgba(216, 180, 254, 0.5);
+            letter-spacing: 3px;
+            z-index: 20;
+        }
+
+        .constellation-center-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-style: italic;
+            color: var(--blush);
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 2s ease;
+            text-shadow: 0 0 40px rgba(255, 105, 180, 0.4);
+            text-align: center;
+            padding: 0 20px;
+        }
+        .constellation-center-text.show { opacity: 1; }
+
+        /* ===== CHAPTER 4: THROUGH THE COSMOS ===== */
+        #ch-cosmos {
+            background: #000;
+        }
+
+        .cosmos-canvas { position: absolute; inset: 0; }
+
+        .cosmos-text {
+            position: relative;
+            z-index: 10;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-style: italic;
+            color: white;
+            text-align: center;
+            max-width: 500px;
+            padding: 0 20px;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+            line-height: 1.6;
+        }
+        .cosmos-text.show { opacity: 1; }
+
+        /* ===== CHAPTER 5: THE LETTER ===== */
+        #ch-letter {
+            background: radial-gradient(ellipse at center, var(--deep) 0%, var(--noir) 100%);
+        }
+
+        .letter-paper {
+            background: linear-gradient(to bottom, #faf5f0, #f5ede4);
+            border-radius: 2px;
+            padding: 50px 45px;
+            max-width: 520px;
+            width: 88vw;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(107, 47, 160, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .letter-paper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 40px;
+            right: 40px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                transparent 0px, transparent 31px,
+                rgba(107, 47, 160, 0.06) 31px, rgba(107, 47, 160, 0.06) 32px
+            );
+            pointer-events: none;
+        }
+
+        .letter-salutation {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-style: italic;
+            color: var(--magenta);
+            margin-bottom: 25px;
+        }
+
+        .letter-body {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.15rem;
+            color: var(--ink);
+            line-height: 2.2;
+        }
+
+        .letter-body .l-line {
+            display: block;
+            opacity: 0;
+            transform: translateX(-5px);
+            transition: all 0.6s ease;
+        }
+        .letter-body .l-line.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .letter-closing {
+            font-family: 'Caveat', cursive;
+            font-size: 1.5rem;
+            color: var(--magenta);
+            margin-top: 30px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .letter-closing.show { opacity: 1; }
+
+        /* ===== CHAPTER 6: THE DOOR ===== */
+        #ch-door {
+            background: radial-gradient(ellipse at 50% 100%, #1a0a2e 0%, #000 80%);
+            perspective: 1500px;
+        }
+
+        .door-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform-style: preserve-3d;
+        }
+
+        .grand-door {
+            width: 200px;
+            height: 340px;
+            position: relative;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .grand-door-frame {
+            position: absolute;
+            inset: -8px;
+            background: linear-gradient(180deg, var(--gold), #8b6914);
+            border-radius: 100px 100px 0 0;
+            box-shadow: 0 0 40px rgba(212, 165, 116, 0.2);
+        }
+
+        .grand-door-panel {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, #1a0a2e, #0a0510);
+            border-radius: 100px 100px 0 0;
+            transform-origin: left;
+            transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+            z-index: 2;
+        }
+
+        .grand-door-panel.open { transform: rotateY(-130deg); }
+
+        .door-kuromi-emblem {
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+
+        .door-whisper {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            color: var(--lavender);
+            letter-spacing: 3px;
+            opacity: 0.6;
+        }
+
+        .door-golden-handle {
+            position: absolute;
+            right: 30px;
+            top: 55%;
+            width: 12px;
+            height: 35px;
+            background: linear-gradient(180deg, var(--gold), #8b6914);
+            border-radius: 6px;
+            box-shadow: 0 0 15px rgba(212, 165, 116, 0.4);
+        }
+
+        .door-glow {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(255, 20, 147, 0.15), transparent 70%);
+            border-radius: 100px 100px 0 0;
+            opacity: 0;
+            transition: opacity 1.5s ease 0.5s;
+            z-index: 1;
+        }
+        .grand-door-panel.open ~ .door-glow { opacity: 1; }
+
+        .door-prompt {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.9rem;
+            color: rgba(216, 180, 254, 0.5);
+            margin-top: 35px;
+            letter-spacing: 3px;
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        /* ===== CHAPTER 7: THE PROPOSAL ===== */
+        #ch-proposal {
+            background: radial-gradient(ellipse at center, var(--deep) 0%, #000 100%);
+        }
+
+        .proposal-stage {
+            text-align: center;
+            position: relative;
+            z-index: 20;
+        }
+
+        .prop-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 4.5rem;
+            font-style: italic;
+            color: var(--blush);
+            opacity: 0;
+            animation: propNameReveal 3s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.5s;
+            text-shadow: 0 0 60px rgba(255, 105, 180, 0.3);
+        }
+
+        @keyframes propNameReveal {
+            0% { opacity: 0; transform: translateY(30px) scale(0.9); letter-spacing: 20px; }
+            100% { opacity: 1; transform: translateY(0) scale(1); letter-spacing: 3px; }
+        }
+
+        .prop-ring-container {
+            margin: 40px auto;
+            width: 140px;
+            height: 160px;
+            position: relative;
+            opacity: 0;
+            animation: ringBoxReveal 2s ease forwards 2.5s;
+        }
+
+        @keyframes ringBoxReveal {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ring-box-outer {
+            width: 120px;
+            height: 80px;
+            background: linear-gradient(135deg, #2a1040, #1a0a2e);
+            border-radius: 8px;
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            border: 1px solid rgba(107, 47, 160, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ring-box-lid {
+            width: 124px;
+            height: 35px;
+            background: linear-gradient(135deg, #2a1040, #1a0a2e);
+            border-radius: 8px 8px 0 0;
+            position: absolute;
+            bottom: 78px;
+            left: 8px;
+            border: 1px solid rgba(107, 47, 160, 0.4);
+            transform-origin: bottom;
+            animation: lidOpen 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards 3.5s;
+        }
+
+        @keyframes lidOpen {
+            to { transform: rotateX(-110deg) translateY(-5px); }
+        }
+
+        .ring-icon {
+            font-size: 3rem;
+            opacity: 0;
+            animation: ringReveal 1.5s ease forwards 4.5s;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+        }
+
+        @keyframes ringReveal {
+            0% { opacity: 0; transform: scale(0) translateY(10px); }
+            60% { transform: scale(1.2) translateY(-5px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .prop-question {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-style: italic;
+            color: white;
+            margin-top: 35px;
+            opacity: 0;
+            animation: questionReveal 2s ease forwards 5.5s;
+            text-shadow: 0 0 40px rgba(199, 21, 133, 0.4);
+        }
+
+        @keyframes questionReveal {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .prop-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            opacity: 0;
+            animation: fadeUp 1.5s ease forwards 7s;
+        }
+
+        .btn-yes {
+            background: linear-gradient(135deg, var(--magenta), var(--hotpink));
+            border: none;
+            color: white;
+            padding: 16px 45px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            font-style: italic;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-yes::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%);
+            animation: shimmer 2.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .btn-yes:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 50px rgba(255, 20, 147, 0.5);
+        }
+
+        .btn-runaway {
+            position: fixed;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: transparent;
+            border: 1px solid rgba(107, 47, 160, 0.3);
+            color: rgba(216, 180, 254, 0.4);
+            padding: 12px 25px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.1s;
+            z-index: 100;
+            letter-spacing: 2px;
+            opacity: 0;
+            animation: fadeUp 1s ease forwards 7.5s;
+        }
+
+        /* ===== CHAPTER 8: CELEBRATION ===== */
+        #ch-forever {
+            background: radial-gradient(ellipse at center, var(--deep) 0%, #000 100%);
+        }
+
+        .forever-container {
+            text-align: center;
+            z-index: 20;
+            position: relative;
+        }
+
+        .forever-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-style: italic;
+            color: var(--blush);
+            text-shadow: 0 0 60px rgba(255, 105, 180, 0.4);
+            animation: foreverPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes foreverPulse {
+            0%, 100% { text-shadow: 0 0 60px rgba(255, 105, 180, 0.3); }
+            50% { text-shadow: 0 0 80px rgba(255, 105, 180, 0.6); }
+        }
+
+        .forever-sub {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            color: var(--lavender);
+            margin-top: 15px;
+            font-weight: 300;
+            letter-spacing: 3px;
+            opacity: 0;
+            animation: fadeUp 2s ease forwards 1s;
+        }
+
+        .forever-line {
+            width: 60px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--skull-pink), transparent);
+            margin: 25px auto;
+            opacity: 0;
+            animation: fadeUp 2s ease forwards 1.5s;
+        }
+
+        .forever-poem {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem;
+            color: rgba(216, 180, 254, 0.7);
+            font-style: italic;
+            line-height: 2;
+            max-width: 400px;
+            margin: 0 auto;
+            opacity: 0;
+            animation: fadeUp 2s ease forwards 2s;
+        }
+
+        /* Firework */
+        .fw-particle {
+            position: fixed;
+            width: 3px;
+            height: 3px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .confetti-p {
+            position: fixed;
+            top: -10px;
+            pointer-events: none;
+            z-index: 100;
+            animation: cFall var(--d) linear forwards;
+        }
+        @keyframes cFall {
+            to { top: 105vh; transform: rotate(var(--r)) translateX(var(--x)); }
+        }
+
+        /* ===== AMBIENT GLOW ===== */
+        .ambient-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -20px); }
+            66% { transform: translate(-20px, 30px); }
+        }
+
+        /* ===== CONTINUE BUTTON ===== */
+        .continue-btn {
+            position: absolute;
+            bottom: 50px;
+            background: transparent;
+            border: 1px solid rgba(216, 180, 254, 0.2);
+            color: var(--lavender);
+            padding: 12px 30px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.4s;
+            opacity: 0;
+            z-index: 30;
+        }
+        .continue-btn.show { opacity: 1; }
+        .continue-btn:hover {
+            border-color: var(--skull-pink);
+            color: var(--blush);
+            box-shadow: 0 0 30px rgba(199, 21, 133, 0.2);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .prop-name { font-size: 3rem; }
+            .prop-question { font-size: 1.8rem; }
+            .forever-title { font-size: 2.5rem; }
+            .story-quote { font-size: 1.5rem; }
+            .letter-paper { padding: 35px 25px; }
+            .diary-book { width: 260px; height: 340px; }
+            .name-letter { width: 44px; height: 56px; font-size: 1.8rem; }
+            .naming-prompt { font-size: 0.95rem; }
+            .constellation-center-text { font-size: 1.8rem; }
+            .cosmos-text { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body class="letterbox-on">
+    <div class="letterbox-top"></div>
+    <div class="letterbox-bottom"></div>
+
+    <!-- Ambient Orbs -->
+    <div class="ambient-orb" style="width:400px;height:400px;background:var(--purple);top:20%;left:10%;"></div>
+    <div class="ambient-orb" style="width:300px;height:300px;background:var(--magenta);bottom:10%;right:10%;animation-delay:-7s;"></div>
+
+    <!-- Particles Layer -->
+    <div class="particles-layer" id="particlesLayer"></div>
+
+    <!-- ===== CHAPTER 0: KUROMI'S DIARY ===== -->
+    <div class="chapter active" id="ch-diary">
+        <div class="diary-scene">
+            <div class="diary-book" id="diaryBook">
+                <div class="diary-cover" id="diaryCover">
+                    <!-- Kuromi Skull Emblem SVG -->
+                    <svg class="diary-skull-emblem" viewBox="0 0 80 80">
+                        <ellipse cx="40" cy="42" rx="28" ry="25" fill="white" stroke="#6b2fa0" stroke-width="1.5"/>
+                        <ellipse cx="30" cy="40" rx="7" ry="9" fill="#1a0a2e"/>
+                        <ellipse cx="50" cy="40" rx="7" ry="9" fill="#1a0a2e"/>
+                        <circle cx="30" cy="38" r="2.5" fill="#ff69b4" opacity="0.8"/>
+                        <circle cx="50" cy="38" r="2.5" fill="#ff69b4" opacity="0.8"/>
+                        <ellipse cx="40" cy="52" rx="3" ry="2" fill="#ffb6c1"/>
+                        <!-- Jester Hat -->
+                        <path d="M12 35 Q20 5 40 10 Q60 5 68 35 Q55 28 40 30 Q25 28 12 35Z" fill="#1a0a2e" stroke="#6b2fa0" stroke-width="1"/>
+                        <!-- Hat pointed tips -->
+                        <circle cx="15" cy="28" r="4" fill="#1a0a2e" stroke="#6b2fa0" stroke-width="1"/>
+                        <circle cx="65" cy="28" r="4" fill="#1a0a2e" stroke="#6b2fa0" stroke-width="1"/>
+                        <!-- Pink skull on hat -->
+                        <circle cx="40" cy="20" r="6" fill="#ff69b4" opacity="0.9"/>
+                        <circle cx="37" cy="19" r="1.5" fill="#1a0a2e"/>
+                        <circle cx="43" cy="19" r="1.5" fill="#1a0a2e"/>
+                        <!-- Devil tail -->
+                        <path d="M40 67 Q45 75 50 72 Q48 78 42 75Z" fill="#1a0a2e"/>
+                    </svg>
+                    <div class="diary-title-text">Kuromi's Diary</div>
+                    <div class="diary-subtitle">~ keep out ~</div>
+                    <div class="diary-lock"></div>
+                </div>
+                <div class="diary-page">
+                    <div class="diary-page-lines"></div>
+                    <div class="diary-date">Today's Entry</div>
+                    <div class="diary-entry" id="diaryEntry"></div>
+                </div>
+            </div>
+            <div class="diary-instruction">click the diary to open</div>
+        </div>
+    </div>
+
+    <!-- ===== CHAPTER 1: THE NAMING ===== -->
+    <div class="chapter" id="ch-name">
+        <div class="naming-scene" style="position:relative;">
+            <div class="name-glow-ring" id="nameGlow"></div>
+            <p class="naming-prompt">
+                Speak her name into the void,<br>
+                and watch the universe respond...
+            </p>
+            <div class="name-input-area" id="nameInput"></div>
+        </div>
+    </div>
+
+    <!-- ===== CHAPTER 2: THE STORY ===== -->
+    <div class="chapter" id="ch-story">
+        <div class="story-scroll" id="storyScroll">
+            <div class="story-section" data-bg="☽">
+                <div class="story-bg-element" style="top:10%;right:10%;">☽</div>
+                <div class="story-quote">The day I met you, something inside me whispered — <em>finally.</em></div>
+                <div class="story-detail">As if my soul recognized yours from a lifetime before this one.</div>
+                <div class="story-divider"></div>
+            </div>
+            <div class="story-section">
+                <div class="story-bg-element" style="bottom:15%;left:5%;">✦</div>
+                <div class="story-quote">You laugh, and the room forgets it was ever dark.</div>
+                <div class="story-detail">I've been collecting your smiles like treasures ever since.</div>
+                <div class="story-divider"></div>
+            </div>
+            <div class="story-section">
+                <div class="story-quote">In a world of noise, your voice is the only sound I want to fall asleep to.</div>
+                <div class="story-detail">And the first thing I want to hear when I wake.</div>
+                <div class="story-divider"></div>
+            </div>
+            <div class="story-section">
+                <div class="story-quote">You are the kind of beautiful that has nothing to do with looks.</div>
+                <div class="story-detail">It's the way you love. The way you care. The way you exist.</div>
+                <div class="story-divider"></div>
+            </div>
+            <div class="story-section">
+                <div class="story-quote">Like Kuromi — tough on the outside, impossibly soft within.</div>
+                <div class="story-detail">Your rebellion is your tenderness. Your mischief is your love.</div>
+                <div class="story-divider"></div>
+            </div>
+            <div class="story-section" id="storyEnd">
+                <div class="story-quote">And now, I have something to ask you...</div>
+                <div class="story-detail">but first — look up at the stars.</div>
+                <button class="continue-btn show" onclick="goTo('ch-constellation')">continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CHAPTER 3: CONSTELLATION ===== -->
+    <div class="chapter" id="ch-constellation">
+        <canvas class="constellation-canvas" id="constCanvas"></canvas>
+        <div class="constellation-center-text" id="constText">Every star is a reason I love you</div>
+        <div class="constellation-prompt" id="constPrompt">touch the stars</div>
+    </div>
+
+    <!-- ===== CHAPTER 4: COSMOS ===== -->
+    <div class="chapter" id="ch-cosmos">
+        <canvas class="cosmos-canvas" id="cosmosCanvas"></canvas>
+        <div class="cosmos-text" id="cosmosText"></div>
+    </div>
+
+    <!-- ===== CHAPTER 5: THE LETTER ===== -->
+    <div class="chapter" id="ch-letter">
+        <div class="letter-paper">
+            <div class="letter-salutation">My dearest Eisha,</div>
+            <div class="letter-body" id="letterBody"></div>
+            <div class="letter-closing" id="letterClosing">Forever and only yours ♡</div>
+        </div>
+        <button class="continue-btn" id="letterContinue" onclick="goTo('ch-door')">continue</button>
+    </div>
+
+    <!-- ===== CHAPTER 6: THE DOOR ===== -->
+    <div class="chapter" id="ch-door">
+        <div class="door-container">
+            <div class="grand-door" onclick="openGrandDoor()">
+                <div class="grand-door-frame"></div>
+                <div class="grand-door-panel" id="grandDoorPanel">
+                    <svg class="door-kuromi-emblem" width="60" height="60" viewBox="0 0 80 80">
+                        <ellipse cx="40" cy="45" rx="22" ry="20" fill="rgba(255,255,255,0.1)" stroke="rgba(216,180,254,0.3)" stroke-width="1"/>
+                        <ellipse cx="33" cy="43" rx="5" ry="6" fill="rgba(216,180,254,0.2)"/>
+                        <ellipse cx="47" cy="43" rx="5" ry="6" fill="rgba(216,180,254,0.2)"/>
+                        <path d="M18 38 Q25 12 40 16 Q55 12 62 38 Q52 32 40 34 Q28 32 18 38Z" fill="rgba(216,180,254,0.1)" stroke="rgba(216,180,254,0.2)" stroke-width="0.5"/>
+                    </svg>
+                    <div class="door-whisper">OPEN ME</div>
+                    <div class="door-golden-handle"></div>
+                </div>
+                <div class="door-glow"></div>
+            </div>
+            <div class="door-prompt">this is it</div>
+        </div>
+    </div>
+
+    <!-- ===== CHAPTER 7: THE PROPOSAL ===== -->
+    <div class="chapter" id="ch-proposal">
+        <div class="proposal-stage">
+            <div class="prop-name">Eisha</div>
+            <div class="prop-ring-container">
+                <div class="ring-box-lid"></div>
+                <div class="ring-box-outer">
+                    <span class="ring-icon">💍</span>
+                </div>
+            </div>
+            <div class="prop-question">Will you marry me?</div>
+            <div class="prop-buttons">
+                <button class="btn-yes" onclick="sayYes()">Yes, forever</button>
+                <button class="btn-yes" style="background:linear-gradient(135deg,var(--purple),var(--magenta))" onclick="sayYes()">A thousand times yes</button>
+            </div>
+        </div>
+        <button class="btn-runaway" id="btnRunaway">hmm, let me think...</button>
+    </div>
+
+    <!-- ===== CHAPTER 8: FOREVER ===== -->
+    <div class="chapter" id="ch-forever">
+        <div class="forever-container">
+            <div class="forever-title">She said yes.</div>
+            <div class="forever-sub">E I S H A & F O R E V E R</div>
+            <div class="forever-line"></div>
+            <div class="forever-poem">
+                In every lifetime, I find you.<br>
+                In every universe, I choose you.<br>
+                In every heartbeat — you.<br>
+                Always, only, endlessly you.
+            </div>
+        </div>
+    </div>
+
+<script>
+// ===== AUDIO ENGINE =====
+let ac;
+function initAC() { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); }
+
+function playNote(freq, dur = 0.3, vol = 0.08, type = 'sine') {
+    if (!ac) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+}
+
+function playChord(freqs, dur = 0.5, vol = 0.04) {
+    freqs.forEach(f => playNote(f, dur, vol));
+}
+
+function playAmbient() {
+    if (!ac) return;
+    // Soft pad drone
+    const notes = [220, 277, 330, 440];
+    notes.forEach(f => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.value = f;
+        g.gain.setValueAtTime(0, ac.currentTime);
+        g.gain.linearRampToValueAtTime(0.015, ac.currentTime + 3);
+        g.gain.linearRampToValueAtTime(0.015, ac.currentTime + 25);
+        g.gain.linearRampToValueAtTime(0, ac.currentTime + 30);
+        o.connect(g); g.connect(ac.destination);
+        o.start(); o.stop(ac.currentTime + 30);
+    });
+}
+
+function playTransition() {
+    [440, 554, 659, 880].forEach((f, i) => setTimeout(() => playNote(f, 0.6, 0.06), i * 150));
+}
+
+function playProposalChord() {
+    setTimeout(() => playChord([261, 329, 392, 523], 2, 0.05), 0);
+    setTimeout(() => playChord([293, 369, 440, 587], 2, 0.05), 2000);
+    setTimeout(() => playChord([329, 415, 493, 659], 3, 0.06), 4000);
+}
+
+// ===== PARTICLES =====
+function createParticles() {
+    const layer = document.getElementById('particlesLayer');
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = Math.random() * 100 + '%';
+        p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+        p.style.background = Math.random() > 0.5 ? 'var(--lavender)' : 'var(--skull-pink)';
+        p.style.setProperty('--dur', (8 + Math.random() * 12) + 's');
+        p.style.setProperty('--delay', (Math.random() * 10) + 's');
+        p.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+        p.style.setProperty('--dy', (Math.random() * -80 - 20) + 'px');
+        p.style.setProperty('--max-opacity', (0.3 + Math.random() * 0.3).toString());
+        layer.appendChild(p);
+    }
+}
+
+function createPetals(count = 20) {
+    const layer = document.getElementById('particlesLayer');
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'petal';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.setProperty('--dur', (6 + Math.random() * 8) + 's');
+        p.style.setProperty('--delay', (Math.random() * 15) + 's');
+        p.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+        p.style.setProperty('--drift', (Math.random() * 100 - 50) + 'px');
+        p.style.background = ['var(--blush)', 'var(--skull-pink)', 'var(--lavender)'][Math.floor(Math.random()*3)];
+        layer.appendChild(p);
+    }
+}
+
+// ===== SCENE MANAGEMENT =====
+let current = 'ch-diary';
+
+function goTo(id) {
+    document.getElementById(current).classList.remove('active');
+    current = id;
+    document.getElementById(id).classList.add('active');
+    playTransition();
+    if (id === 'ch-story') initStoryScroll();
+    if (id === 'ch-constellation') initConstellation();
+    if (id === 'ch-cosmos') initCosmos();
+    if (id === 'ch-letter') initLetter();
+    if (id === 'ch-proposal') initProposal();
+    if (id === 'ch-forever') initForever();
+}
+
+// ===== CHAPTER 0: DIARY =====
+let diaryOpened = false;
+document.getElementById('diaryBook').onclick = function() {
+    if (diaryOpened) return;
+    diaryOpened = true;
+    initAC();
+    playAmbient();
+    playNote(330, 0.5, 0.06);
+
+    document.getElementById('diaryCover').classList.add('open');
+
+    const entry = "Dear Diary... Someone very special is about to go on the greatest adventure of her life. She doesn't know it yet, but at the end of this journey, everything changes. I've been keeping this secret for so long — and tonight, she'll finally know. This one's for you, Eisha. — ♡";
+    const words = entry.split(' ');
+    const container = document.getElementById('diaryEntry');
+    container.innerHTML = '';
+
+    words.forEach((word, i) => {
+        const span = document.createElement('span');
+        span.textContent = word + ' ';
+        container.appendChild(span);
+        setTimeout(() => {
+            span.classList.add('show');
+            if (i % 4 === 0) playNote(400 + Math.random() * 200, 0.1, 0.02);
+        }, 800 + i * 80);
+    });
+
+    setTimeout(() => goTo('ch-name'), 800 + words.length * 80 + 2000);
+};
+
+// ===== CHAPTER 1: NAMING =====
+const TARGET = 'EISHA';
+let nameProgress = '';
+
+function initNaming() {
+    const container = document.getElementById('nameInput');
+    for (let i = 0; i < TARGET.length; i++) {
+        const el = document.createElement('div');
+        el.className = 'name-letter';
+        el.id = `nl-${i}`;
+        container.appendChild(el);
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    if (current !== 'ch-name') return;
+    if (/^[a-zA-Z]$/.test(e.key) && nameProgress.length < TARGET.length) {
+        const letter = e.key.toUpperCase();
+        const idx = nameProgress.length;
+        nameProgress += letter;
+        const el = document.getElementById(`nl-${idx}`);
+        el.textContent = letter;
+        el.classList.add('filled');
+        playNote(440 + idx * 80, 0.15, 0.08);
+
+        if (nameProgress.length === TARGET.length) {
+            setTimeout(checkName, 400);
+        }
+    }
+    if (e.key === 'Backspace' && nameProgress.length > 0) {
+        const idx = nameProgress.length - 1;
+        nameProgress = nameProgress.slice(0, -1);
+        const el = document.getElementById(`nl-${idx}`);
+        el.textContent = '';
+        el.classList.remove('filled');
+    }
+});
+
+// Touch keyboard for mobile
+document.getElementById('ch-name').addEventListener('click', () => {
+    if (current !== 'ch-name') return;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    input.style.top = '50%';
+    document.body.appendChild(input);
+    input.focus();
+    input.addEventListener('input', (e) => {
+        const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+        nameProgress = '';
+        for (let i = 0; i < TARGET.length; i++) {
+            const el = document.getElementById(`nl-${i}`);
+            if (i < val.length) {
+                el.textContent = val[i];
+                el.classList.add('filled');
+                nameProgress += val[i];
+            } else {
+                el.textContent = '';
+                el.classList.remove('filled');
+            }
+        }
+        if (nameProgress.length === TARGET.length) {
+            setTimeout(checkName, 400);
+            input.blur();
+            input.remove();
+        }
+    });
+});
+
+function checkName() {
+    if (nameProgress === TARGET) {
+        // Bloom effect
+        for (let i = 0; i < TARGET.length; i++) {
+            setTimeout(() => {
+                document.getElementById(`nl-${i}`).classList.add('bloom');
+                playNote(523 + i * 80, 0.3, 0.08);
+            }, i * 200);
+        }
+        document.getElementById('nameGlow').classList.add('expand');
+        setTimeout(() => {
+            playChord([523, 659, 784, 1047], 1, 0.06);
+            goTo('ch-story');
+        }, 2000);
+    } else {
+        nameProgress = '';
+        for (let i = 0; i < TARGET.length; i++) {
+            const el = document.getElementById(`nl-${i}`);
+            el.textContent = '';
+            el.classList.remove('filled');
+        }
+        playNote(200, 0.3, 0.05, 'triangle');
+    }
+}
+
+// ===== CHAPTER 2: STORY SCROLL =====
+function initStoryScroll() {
+    const scroll = document.getElementById('storyScroll');
+    const sections = scroll.querySelectorAll('.story-section');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                playNote(400 + Math.random() * 200, 0.2, 0.03);
+            }
+        });
+    }, { threshold: 0.4, root: scroll });
+
+    sections.forEach(s => observer.observe(s));
+    setTimeout(() => sections[0].classList.add('visible'), 500);
+}
+
+// ===== CHAPTER 3: CONSTELLATION =====
+let constStars = [];
+let constCtx;
+let constConnected = 0;
+
+function initConstellation() {
+    const canvas = document.getElementById('constCanvas');
+    constCtx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const reasons = [
+        'your smile', 'your laugh', 'your kindness', 'your strength',
+        'your warmth', 'your mischief', 'your courage', 'your soul',
+        'your heart', 'your voice', 'your eyes', 'everything'
+    ];
+
+    constStars = [];
+    constConnected = 0;
+
+    // Place stars in a heart shape
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    for (let i = 0; i < reasons.length; i++) {
+        const t = (i / reasons.length) * Math.PI * 2;
+        const hx = 16 * Math.pow(Math.sin(t), 3);
+        const hy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+        constStars.push({
+            x: cx + hx * (Math.min(canvas.width, canvas.height) * 0.018),
+            y: cy + hy * (Math.min(canvas.width, canvas.height) * 0.018),
+            connected: false,
+            word: reasons[i],
+            phase: Math.random() * Math.PI * 2
+        });
+    }
+
+    canvas.onclick = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        constStars.forEach(star => {
+            if (star.connected) return;
+            const d = Math.hypot(mx - star.x, my - star.y);
+            if (d < 30) {
+                star.connected = true;
+                constConnected++;
+                playNote(440 + constConnected * 50, 0.4, 0.08);
+
+                // Show word
+                const wordEl = document.createElement('div');
+                wordEl.className = 'constellation-word';
+                wordEl.textContent = star.word;
+                wordEl.style.left = star.x + 'px';
+                wordEl.style.top = (star.y + 15) + 'px';
+                document.getElementById('ch-constellation').appendChild(wordEl);
+                setTimeout(() => wordEl.classList.add('show'), 50);
+
+                if (constConnected >= constStars.length) {
+                    setTimeout(() => {
+                        document.getElementById('constText').classList.add('show');
+                        document.getElementById('constPrompt').style.display = 'none';
+                        playChord([523, 659, 784], 1, 0.06);
+                        setTimeout(() => goTo('ch-cosmos'), 3000);
+                    }, 800);
+                }
+            }
+        });
+    };
+
+    animateConst();
+}
+
+function animateConst() {
+    if (current !== 'ch-constellation') return;
+    const canvas = document.getElementById('constCanvas');
+    constCtx.clearRect(0, 0, canvas.width, canvas.height);
+    const time = Date.now() * 0.002;
+
+    // Draw connections
+    for (let i = 1; i < constStars.length; i++) {
+        if (constStars[i].connected && constStars[i-1].connected) {
+            constCtx.beginPath();
+            constCtx.moveTo(constStars[i-1].x, constStars[i-1].y);
+            constCtx.lineTo(constStars[i].x, constStars[i].y);
+            constCtx.strokeStyle = 'rgba(255, 105, 180, 0.3)';
+            constCtx.lineWidth = 1;
+            constCtx.stroke();
+        }
+    }
+    if (constStars[0].connected && constStars[constStars.length-1].connected) {
+        constCtx.beginPath();
+        constCtx.moveTo(constStars[constStars.length-1].x, constStars[constStars.length-1].y);
+        constCtx.lineTo(constStars[0].x, constStars[0].y);
+        constCtx.strokeStyle = 'rgba(255, 105, 180, 0.3)';
+        constCtx.lineWidth = 1;
+        constCtx.stroke();
+    }
+
+    // Draw stars
+    constStars.forEach(star => {
+        const glow = Math.sin(time + star.phase) * 0.3 + 0.7;
+        const r = star.connected ? 5 : 3;
+
+        constCtx.beginPath();
+        constCtx.arc(star.x, star.y, r, 0, Math.PI * 2);
+        constCtx.fillStyle = star.connected
+            ? `rgba(255, 105, 180, ${glow})`
+            : `rgba(216, 180, 254, ${glow * 0.5})`;
+        constCtx.fill();
+
+        if (!star.connected) {
+            constCtx.beginPath();
+            constCtx.arc(star.x, star.y, 12, 0, Math.PI * 2);
+            constCtx.fillStyle = `rgba(107, 47, 160, ${glow * 0.08})`;
+            constCtx.fill();
+        }
+    });
+
+    requestAnimationFrame(animateConst);
+}
+
+// ===== CHAPTER 4: COSMOS =====
+function initCosmos() {
+    const canvas = document.getElementById('cosmosCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let stars = [];
+    for (let i = 0; i < 400; i++) {
+        stars.push({
+            x: Math.random() * canvas.width - canvas.width / 2,
+            y: Math.random() * canvas.height - canvas.height / 2,
+            z: Math.random() * 1000,
+            pz: 0
+        });
+    }
+
+    const messages = [
+        "Across every galaxy...",
+        "Through every black hole and nebula...",
+        "Past every dying star...",
+        "My heart navigates the infinite void...",
+        "To find its way home —",
+        "To you."
+    ];
+    let msgIdx = 0;
+    const textEl = document.getElementById('cosmosText');
+
+    function showMsg() {
+        if (msgIdx >= messages.length) {
+            setTimeout(() => goTo('ch-letter'), 2000);
+            return;
+        }
+        textEl.classList.remove('show');
+        setTimeout(() => {
+            textEl.textContent = messages[msgIdx];
+            textEl.classList.add('show');
+            playNote(300 + msgIdx * 60, 0.5, 0.04);
+            msgIdx++;
+            setTimeout(showMsg, 2800);
+        }, 600);
+    }
+    setTimeout(showMsg, 1000);
+
+    function animateCosmos() {
+        if (current !== 'ch-cosmos') return;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const cx = canvas.width / 2, cy = canvas.height / 2;
+        stars.forEach(star => {
+            star.pz = star.z;
+            star.z -= 8;
+            if (star.z <= 0) {
+                star.x = Math.random() * canvas.width - cx;
+                star.y = Math.random() * canvas.height - cy;
+                star.z = 1000;
+                star.pz = 1000;
+            }
+
+            const sx = (star.x / star.z) * 300 + cx;
+            const sy = (star.y / star.z) * 300 + cy;
+            const px = (star.x / star.pz) * 300 + cx;
+            const py = (star.y / star.pz) * 300 + cy;
+            const size = Math.max(0.5, (1 - star.z / 1000) * 3);
+
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(sx, sy);
+            const brightness = (1 - star.z / 1000);
+            ctx.strokeStyle = `rgba(216, 180, 254, ${brightness * 0.8})`;
+            ctx.lineWidth = size;
+            ctx.stroke();
+        });
+
+        requestAnimationFrame(animateCosmos);
+    }
+    animateCosmos();
+}
+
+// ===== CHAPTER 5: LETTER =====
+function initLetter() {
+    const lines = [
+        "If I could bottle the feeling of being near you,",
+        "I'd keep it in a vault made of starlight and never let it go.",
+        "",
+        "You walked into my world and turned the ordinary into poetry.",
+        "Every boring Tuesday became an adventure.",
+        "Every silence became comfortable. Every goodbye became unbearable.",
+        "",
+        "You are my favourite notification.",
+        "My reason to come home.",
+        "My 2 AM thought and my 7 AM smile.",
+        "",
+        "Like Kuromi writes in her secret diary —",
+        "the world thinks I'm tough, but you... you know the truth.",
+        "You've seen every version of me, and you stayed.",
+        "",
+        "So now, behind the next door,",
+        "waits the question I've been dreaming of asking.",
+        "",
+        "Are you ready?"
+    ];
+
+    const body = document.getElementById('letterBody');
+    body.innerHTML = '';
+    lines.forEach((line, i) => {
+        const span = document.createElement('span');
+        span.className = 'l-line';
+        span.textContent = line || '\u00A0';
+        body.appendChild(span);
+        setTimeout(() => {
+            span.classList.add('show');
+            if (line && i % 3 === 0) playNote(350 + i * 15, 0.15, 0.02);
+        }, i * 250);
+    });
+
+    setTimeout(() => {
+        document.getElementById('letterClosing').classList.add('show');
+        document.getElementById('letterContinue').classList.add('show');
+    }, lines.length * 250 + 1000);
+}
+
+// ===== CHAPTER 6: DOOR =====
+let doorOpen = false;
+function openGrandDoor() {
+    if (doorOpen) return;
+    doorOpen = true;
+    document.getElementById('grandDoorPanel').classList.add('open');
+    playNote(220, 1, 0.06, 'triangle');
+    setTimeout(() => playNote(330, 0.8, 0.06), 500);
+    setTimeout(() => playNote(440, 0.8, 0.06), 1000);
+    setTimeout(() => {
+        goTo('ch-proposal');
+    }, 2500);
+}
+
+// ===== CHAPTER 7: PROPOSAL =====
+function initProposal() {
+    playProposalChord();
+    createPetals(30);
+
+    // Runaway button
+    const btn = document.getElementById('btnRunaway');
+    let dodges = 0;
+    btn.onmouseenter = btn.ontouchstart = function(e) {
+        if (e.type === 'touchstart') e.preventDefault();
+        dodges++;
+        btn.style.left = (Math.random() * (window.innerWidth - 200) + 50) + 'px';
+        btn.style.top = (Math.random() * (window.innerHeight - 200) + 50) + 'px';
+        btn.style.transform = 'none';
+        playNote(200 + Math.random() * 100, 0.05, 0.03, 'square');
+        if (dodges > 3) btn.textContent = 'nice try...';
+        if (dodges > 6) btn.textContent = 'just say yes!';
+        if (dodges > 9) { btn.style.opacity = '0'; setTimeout(() => btn.style.display = 'none', 300); }
+    };
+}
+
+// ===== CHAPTER 8: FOREVER =====
+function sayYes() {
+    goTo('ch-forever');
+}
+
+function initForever() {
+    // Epic celebration
+    launchFireworks();
+    launchConfettiShower();
+    playChord([523, 659, 784, 1047], 3, 0.08);
+    setInterval(launchFireworks, 2500);
+    setInterval(launchConfettiShower, 4000);
+    createPetals(50);
+}
+
+function launchFireworks() {
+    for (let i = 0; i < 4; i++) {
+        setTimeout(() => {
+            const x = Math.random() * window.innerWidth;
+            const y = 50 + Math.random() * window.innerHeight * 0.4;
+            explode(x, y);
+        }, i * 300);
+    }
+}
+
+function explode(x, y) {
+    const colors = ['#ff69b4', '#d8b4fe', '#c71585', '#ffd700', '#ffffff', '#ffb6c1'];
+    for (let i = 0; i < 35; i++) {
+        const p = document.createElement('div');
+        p.className = 'fw-particle';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        document.body.appendChild(p);
+
+        const angle = (i / 35) * Math.PI * 2;
+        const v = 40 + Math.random() * 80;
+        const dx = Math.cos(angle) * v;
+        const dy = Math.sin(angle) * v + 30; // gravity
+
+        p.animate([
+            { transform: 'translate(0,0) scale(1)', opacity: 1 },
+            { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+        ], { duration: 1200 + Math.random() * 600, easing: 'cubic-bezier(0,0,0.2,1)' });
+        setTimeout(() => p.remove(), 2000);
+    }
+    playNote(600 + Math.random() * 600, 0.15, 0.04);
+}
+
+function launchConfettiShower() {
+    const colors = ['#ff69b4', '#6b2fa0', '#c71585', '#ffd700', '#d8b4fe', '#fff', '#ffb6c1'];
+    for (let i = 0; i < 60; i++) {
+        setTimeout(() => {
+            const c = document.createElement('div');
+            c.className = 'confetti-p';
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.width = (4 + Math.random() * 8) + 'px';
+            c.style.height = (3 + Math.random() * 6) + 'px';
+            c.style.background = colors[Math.floor(Math.random() * colors.length)];
+            c.style.borderRadius = Math.random() > 0.5 ? '50%' : '1px';
+            c.style.setProperty('--d', (3 + Math.random() * 4) + 's');
+            c.style.setProperty('--r', (Math.random() * 720) + 'deg');
+            c.style.setProperty('--x', (Math.random() * 150 - 75) + 'px');
+            document.body.appendChild(c);
+            setTimeout(() => c.remove(), 7000);
+        }, i * 40);
+    }
+}
+
+// ===== INIT =====
+window.addEventListener('load', () => {
+    createParticles();
+    initNaming();
+});
+document.addEventListener('click', () => initAC(), { once: true });
+document.addEventListener('touchstart', () => initAC(), { once: true });
+</script>
+</body>
+</html>
