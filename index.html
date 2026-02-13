@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>...</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@200;300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-weight: 300
+        }
+
+        /* ══════════════════════════════════════
+   CINEMATOGRAPHY CORE
+   ══════════════════════════════════════ */
+        .shot {
+            position: fixed;
+            inset: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 2s cubic-bezier(.4, 0, .2, 1), visibility 0s 2s
+        }
+
+        .shot.active {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0s, 0s
+        }
+
+        .shot.cut {
+            transition-duration: .4s
+        }
+
+        /* Aspect ratio bars (cinematic letterbox) */
+        .bars::before,
+        .bars::after {
+            content: '';
+            position: fixed;
+            left: 0;
+            right: 0;
+            height: 8vh;
+            background: #000;
+            z-index: 100;
+            pointer-events: none
+        }
+
+        .bars::before {
+            top: 0
+        }
+
+        .bars::after {
+            bottom: 0
+        }
+
+        /* ══════════════════════════════════════
+   VISUAL LAYERS
+   ══════════════════════════════════════ */
+        .layer {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .layer.bg {
+            z-index: 1
+        }
+
+        .layer.fg {
+            z-index: 2
+        }
+
+        .layer.ui {
+            z-index: 3
+        }
+
+        /* Background treatments */
+        .bg-void {
+            background: #000
+        }
+
+        .bg-light {
+            background: #f5f5f5
+        }
+
+        .bg-gradient {
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%)
+        }
+
+        .bg-image {
+            background-size: cover;
+            background-position: center;
+            position: relative
+        }
+
+        .bg-image::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .65);
+            backdrop-filter: blur(2px)
+        }
+
+        /* ══════════════════════════════════════
+   TYPOGRAPHY (CINEMATIC)
+   ══════════════════════════════════════ */
+        .type {
+            max-width: 720px;
+            width: 86%;
+            opacity: 0;
+            transform: translateY(12px)
+        }
+
+        .type.reveal {
+            animation: fadeUp 1.4s forwards
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .type.body {
+            font-size: clamp(1rem, 1.7vw, 1.2rem);
+            line-height: 2;
+            letter-spacing: .015em;
+            font-weight: 300
+        }
+
+        .type.serif {
+            font-family: 'EB Garamond', serif;
+            font-size: clamp(1.1rem, 1.9vw, 1.35rem);
+            line-height: 2.2;
+            font-weight: 400
+        }
+
+        .type.title {
+            font-size: clamp(2.2rem, 5vw, 4rem);
+            line-height: 1.2;
+            font-weight: 200;
+            letter-spacing: -.03em
+        }
+
+        .type.caption {
+            font-size: clamp(.7rem, 1.1vw, .8rem);
+            color: rgba(255, 255, 255, .45);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            font-weight: 400
+        }
+
+        .type em {
+            font-style: italic;
+            color: rgba(255, 255, 255, .75)
+        }
+
+        .type .dim {
+            color: rgba(255, 255, 255, .35)
+        }
+
+        .type .beat {
+            display: block;
+            height: 1.5em
+        }
+
+        /* Light mode overrides */
+        .light .type {
+            color: #1a1a1a
+        }
+
+        .light .type em {
+            color: rgba(0, 0, 0, .75)
+        }
+
+        .light .type .dim {
+            color: rgba(0, 0, 0, .35)
+        }
+
+        .light .type.caption {
+            color: rgba(0, 0, 0, .45)
+        }
+
+        /* ══════════════════════════════════════
+   MEMORY FRAGMENTS (VISUAL)
+   ══════════════════════════════════════ */
+        .fragment-grid {
+            display: grid;
+            gap: 2.5rem;
+            max-width: 880px;
+            width: 86%;
+            opacity: 0
+        }
+
+        .fragment-grid.reveal {
+            animation: fadeUp 1.4s forwards
+        }
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(20px)
+        }
+
+        .fragment.show {
+            animation: fragmentReveal 1s forwards
+        }
+
+        @keyframes fragmentReveal {
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .fragment-meta {
+            font-size: .65rem;
+            color: rgba(255, 255, 255, .3);
+            letter-spacing: .15em;
+            text-transform: uppercase;
+            margin-bottom: .7rem;
+            font-weight: 400
+        }
+
+        .fragment-content {
+            font-family: 'EB Garamond', serif;
+            font-size: clamp(1rem, 1.7vw, 1.2rem);
+            line-height: 2;
+            color: rgba(255, 255, 255, .9)
+        }
+
+        .fragment-detail {
+            font-size: .85rem;
+            color: rgba(255, 255, 255, .5);
+            margin-top: .6rem;
+            font-style: italic;
+            font-weight: 300
+        }
+
+        /* ══════════════════════════════════════
+   PHOTO REVEAL (STRATEGIC)
+   ══════════════════════════════════════ */
+        .photo-container {
+            position: relative;
+            width: min(480px, 82vw);
+            height: min(640px, 75vh);
+            opacity: 0;
+            transform: scale(.96)
+        }
+
+        .photo-container.reveal {
+            animation: photoReveal 2.5s forwards
+        }
+
+        @keyframes photoReveal {
+            to {
+                opacity: 1;
+                transform: scale(1)
+            }
+        }
+
+        .photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            filter: grayscale(.3) contrast(1.05)
+        }
+
+        .photo-frame {
+            position: absolute;
+            inset: -8px;
+            border: 1px solid rgba(255, 255, 255, .15);
+            pointer-events: none
+        }
+
+        .photo-caption {
+            position: absolute;
+            bottom: -3.5rem;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: .7rem;
+            color: rgba(255, 255, 255, .4);
+            letter-spacing: .1em;
+            text-transform: uppercase
+        }
+
+        /* ══════════════════════════════════════
+   INTERACTIVE ELEMENTS
+   ══════════════════════════════════════ */
+        .action {
+            display: inline-block;
+            padding: .55rem 1.8rem;
+            margin: .4rem;
+            border: 1px solid rgba(255, 255, 255, .2);
+            font-size: .8rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all .35s;
+            background: none;
+            color: rgba(255, 255, 255, .8);
+            font-weight: 400
+        }
+
+        .action:hover {
+            border-color: rgba(255, 255, 255, .6);
+            color: #fff;
+            background: rgba(255, 255, 255, .04);
+            transform: translateY(-1px)
+        }
+
+        .action.primary {
+            border-color: rgba(255, 255, 255, .5);
+            color: #fff
+        }
+
+        .action.primary:hover {
+            background: rgba(255, 255, 255, .08)
+        }
+
+        .actions {
+            margin-top: 3rem;
+            opacity: 0
+        }
+
+        .actions.reveal {
+            animation: fadeUp 1s 1.2s forwards
+        }
+
+        /* Light mode */
+        .light .action {
+            border-color: rgba(0, 0, 0, .2);
+            color: rgba(0, 0, 0, .8)
+        }
+
+        .light .action:hover {
+            border-color: rgba(0, 0, 0, .6);
+            color: #000;
+            background: rgba(0, 0, 0, .04)
+        }
+
+        .light .action.primary {
+            border-color: rgba(0, 0, 0, .5);
+            color: #000
+        }
+
+        /* ══════════════════════════════════════
+   UI ELEMENTS
+   ══════════════════════════════════════ */
+        .timecode {
+            position: fixed;
+            top: calc(8vh + 1.8rem);
+            right: 2.2rem;
+            font-size: .62rem;
+            color: rgba(255, 255, 255, .22);
+            letter-spacing: .14em;
+            font-variant-numeric: tabular-nums;
+            z-index: 200;
+            opacity: 0;
+            font-weight: 400
+        }
+
+        .timecode.show {
+            animation: fadeUp .8s 1.2s forwards
+        }
+
+        .counter {
+            position: fixed;
+            bottom: calc(8vh + 1.8rem);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: .58rem;
+            color: rgba(255, 255, 255, .18);
+            letter-spacing: .18em;
+            z-index: 200;
+            opacity: 0;
+            font-weight: 400
+        }
+
+        .counter.show {
+            animation: fadeUp .8s 1.5s forwards
+        }
+
+        .light .timecode,
+        .light .counter {
+            color: rgba(0, 0, 0, .22)
+        }
+
+        /* Instruction hint */
+        .hint {
+            position: fixed;
+            bottom: calc(8vh + 1.8rem);
+            right: 2.2rem;
+            font-size: .6rem;
+            color: rgba(255, 255, 255, .25);
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            z-index: 200;
+            opacity: 0;
+            animation: breathe 3s ease-in-out infinite
+        }
+
+        .hint.show {
+            opacity: 1
+        }
+
+        @keyframes breathe {
+
+            0%,
+            100% {
+                opacity: .25
+            }
+
+            50% {
+                opacity: .5
+            }
+        }
+
+        /* ══════════════════════════════════════
+   SPECIAL STATES
+   ══════════════════════════════════════ */
+        .centered {
+            text-align: center
+        }
+
+        .split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center
+        }
+
+        @media(max-width:768px) {
+            .split {
+                grid-template-columns: 1fr;
+                gap: 2rem
+            }
+        }
+    </style>
+</head>
+
+<body class="bars">
+
+    <!-- UI ELEMENTS -->
+    <div class="timecode" id="time">04:20 AM</div>
+    <div class="counter" id="counter">01 / 12</div>
+    <div class="hint" id="hint">SPACE</div>
+
+    <!-- SHOT 01: COLD OPEN -->
+    <div class="shot active" id="s1">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type caption" id="s1t">Press space to begin</div>
+        </div>
+    </div>
+
+    <!-- SHOT 02: CONTEXT -->
+    <div class="shot" id="s2">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type body" id="s2t">
+                It's 4:20 in the morning.<br>
+                You're on the other end of this Discord call.<br>
+                <span class="dim">Waiting for me to fix the sound issue.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 03: ADMISSION -->
+    <div class="shot" id="s3">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type body" id="s3t">
+                I'm not fixing the sound.<br>
+                I'm building you this.<span class="beat"></span>
+                <span class="dim">Because apparently that's who I become around you.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 04: MEMORY FRAGMENTS -->
+    <div class="shot" id="s4">
+        <div class="layer bg bg-gradient"></div>
+        <div class="layer fg">
+            <div class="fragment-grid" id="s4grid">
+                <div class="fragment" id="frag1">
+                    <div class="fragment-meta">Memory / Fragment 01</div>
+                    <div class="fragment-content">
+                        I brought you sunflowers on our first date. I'd read somewhere they mean adoration. You smiled
+                        like I'd done something right, and I thought: <em>maybe I did.</em>
+                    </div>
+                    <div class="fragment-detail">You kept one. Pressed it in a book.</div>
+                </div>
+
+                <div class="fragment" id="frag2">
+                    <div class="fragment-meta">Memory / Fragment 02</div>
+                    <div class="fragment-content">
+                        An art gallery cafe. Warm lights on the walls. You ordered a milkshake—not coffee, never
+                        coffee—and we talked about the paintings like we knew what we were saying.
+                    </div>
+                    <div class="fragment-detail">I don't remember the art. I remember you.</div>
+                </div>
+
+                <div class="fragment" id="frag3">
+                    <div class="fragment-meta">Memory / Fragment 03</div>
+                    <div class="fragment-content">
+                        When you were leaving, you held my arm. Not my hand. My arm. Like you were steadying yourself.
+                        Or steadying me. I'm still not sure which.
+                    </div>
+                    <div class="fragment-detail">That's when I knew.</div>
+                </div>
+
+                <div class="fragment" id="frag4">
+                    <div class="fragment-meta">Memory / Fragment 04</div>
+                    <div class="fragment-content">
+                        Right now we're watching a K-drama on Discord. You're waiting for me to fix the sound. I told
+                        you "give me a minute."
+                    </div>
+                    <div class="fragment-detail">I lied. I'm building you this instead.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- SHOT 05: THE SHIFT -->
+    <div class="shot" id="s5">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type title" id="s5t">
+                That's when I knew.
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 06: HER (PHOTO REVEAL) -->
+    <div class="shot" id="s6">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="photo-container" id="s6photo">
+                <img class="photo" src="2cdb9e72-964e-469c-a7a9-8cf3bc5c08e7.jpeg" alt="Eisha">
+                <div class="photo-frame"></div>
+                <div class="photo-caption">Eisha</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 07: HER WORLD -->
+    <div class="shot" id="s7">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type serif" id="s7t">
+                You collect Kuromi plushies like they're going extinct.<br>
+                You want a flip phone just to hear it <em>click</em> when you hang up.<br>
+                You have a white Persian cat named Pookie who's sick right now.<span class="beat"></span>
+                <span class="dim">And you're on your period and probably want me to stop talking.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 08: THE TRUTH -->
+    <div class="shot" id="s8">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type serif" id="s8t">
+                I could've just fixed the sound.<br>
+                Could've gone back to the show.<br>
+                Could've been a normal person.<span class="beat"></span>
+                But normal people don't build websites at 4 AM while you're waiting.<br>
+                Normal people don't get to hold your arm.<br>
+                Normal people don't get to be loved by you.
+            </div>
+        </div>
+    </div>
+    <!-- SHOT 09: INVERSION -->
+    <div class="shot light" id="s9">
+        <div class="layer bg bg-light"></div>
+        <div class="layer fg">
+            <div class="type body" id="s9t">
+                So here's the un-normal version:
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 10: CORE -->
+    <div class="shot light" id="s10">
+        <div class="layer bg bg-light"></div>
+        <div class="layer fg">
+            <div class="type title" id="s10t">
+                I love you.
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 11: THE QUESTION -->
+    <div class="shot" id="s11">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type serif centered" id="s11t">
+                Will you be my Valentine?
+            </div>
+            <div class="actions" id="s11actions">
+                <button class="action primary" id="yes">Yes</button>
+                <button class="action" id="no">No</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 12: NO RESPONSE -->
+    <div class="shot" id="s12">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type body" id="s12t">
+                ...<span class="beat"></span>
+                Okay.<span class="beat"></span>
+                <span class="dim">Let me rephrase that.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 13: CORRECTED -->
+    <div class="shot" id="s13">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type serif centered" id="s13t">
+                Will you be my Valentine?
+            </div>
+            <div class="actions reveal">
+                <button class="action primary" id="yes2">Yes</button>
+                <button class="action primary" id="yes3">Also Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 14: ACCEPTANCE -->
+    <div class="shot light" id="s14">
+        <div class="layer bg bg-light"></div>
+        <div class="layer fg">
+            <div class="type title" id="s14t">
+                She said yes.
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 15: GRATITUDE -->
+    <div class="shot light" id="s15">
+        <div class="layer bg bg-light"></div>
+        <div class="layer fg">
+            <div class="type serif" id="s15t">
+                Thank you for holding my arm that day.<br>
+                Thank you for every Discord call since.<br>
+                Thank you for waiting while I built this.<span class="beat"></span>
+                Happy Valentine's Day, Eisha.
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOT 16: SIGNATURE -->
+    <div class="shot" id="s16">
+        <div class="layer bg bg-void"></div>
+        <div class="layer fg">
+            <div class="type caption" id="s16t" style="animation:breathe 4s ease-in-out infinite">
+                Made at 4:20 AM instead of fixing the sound<br>
+                <span class="dim">Worth it</span><span class="beat"></span>
+                P.S. — Give Pookie extra pets from me.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ═══════════════════════════════════════
+           DIRECTOR'S CUT
+           ═══════════════════════════════════════ */
+        let current = 1;
+        const shots = {
+            1: { next: 2, auto: false, delay: 0 },
+            2: { next: 3, auto: true, delay: 4000, reveal: 'body', revealDelay: 800 },
+            3: { next: 4, auto: true, delay: 4500, reveal: 'body', revealDelay: 800 },
+            4: { next: 5, auto: false, delay: 0, reveal: 'grid', fragments: [800, 1600, 2400, 3200] },
+            5: { next: 6, auto: true, delay: 3000, reveal: 'title', revealDelay: 800 },
+            6: { next: 7, auto: true, delay: 4000, reveal: 'photo', revealDelay: 600 },
+            7: { next: 8, auto: true, delay: 5000, reveal: 'serif', revealDelay: 800 },
+            8: { next: 9, auto: true, delay: 5500, reveal: 'serif', revealDelay: 800 },
+            9: { next: 10, auto: true, delay: 2800, reveal: 'body', revealDelay: 800 },
+            10: { next: 11, auto: true, delay: 3200, reveal: 'title', revealDelay: 800 },
+            11: { next: null, auto: false, delay: 0, reveal: 'serif', revealDelay: 800, actions: 2000 },
+            12: { next: 13, auto: true, delay: 3500, reveal: 'body', revealDelay: 800 },
+            13: { next: null, auto: false, delay: 0, reveal: 'serif', revealDelay: 800 },
+            14: { next: 15, auto: true, delay: 3000, reveal: 'title', revealDelay: 800 },
+            15: { next: 16, auto: true, delay: 5000, reveal: 'serif', revealDelay: 800 },
+            16: { next: null, auto: false, delay: 0, reveal: 'caption', revealDelay: 800 }
+        };
+
+        function cut(to, instant = false) {
+            const from = document.getElementById(`s${current}`);
+            const next = document.getElementById(`s${to}`);
+
+            if (instant) {
+                from.classList.add('cut');
+                next.classList.add('cut');
+            }
+
+            from.style.opacity = '0';
+
+            setTimeout(() => {
+                from.classList.remove('active', 'cut');
+                next.classList.add('active');
+                current = to;
+
+                // Update counter
+                document.getElementById('counter').textContent = `${String(to).padStart(2, '0')} / 16`;
+
+                // Execute shot
+                const shot = shots[to];
+                if (!shot) return;
+
+                // Reveal content
+                if (shot.reveal === 'body') {
+                    setTimeout(() => document.getElementById(`s${to}t`).classList.add('reveal'), shot.revealDelay);
+                } else if (shot.reveal === 'serif') {
+                    setTimeout(() => document.getElementById(`s${to}t`).classList.add('reveal'), shot.revealDelay);
+                } else if (shot.reveal === 'title') {
+                    setTimeout(() => document.getElementById(`s${to}t`).classList.add('reveal'), shot.revealDelay);
+                } else if (shot.reveal === 'caption') {
+                    setTimeout(() => document.getElementById(`s${to}t`).classList.add('reveal'), shot.revealDelay);
+                } else if (shot.reveal === 'grid') {
+                    setTimeout(() => document.getElementById('s4grid').classList.add('reveal'), shot.revealDelay);
+                } else if (shot.reveal === 'photo') {
+                    setTimeout(() => document.getElementById('s6photo').classList.add('reveal'), shot.revealDelay);
+                }
+
+                // Reveal fragments
+                if (shot.fragments) {
+                    shot.fragments.forEach((delay, i) => {
+                        setTimeout(() => document.getElementById(`frag${i + 1}`).classList.add('show'), delay);
+                    });
+                }
+
+                // Reveal actions
+                if (shot.actions) {
+                    setTimeout(() => document.getElementById(`s${to}actions`).classList.add('reveal'), shot.actions);
+                }
+
+                // Auto-advance
+                if (shot.auto && shot.next) {
+                    setTimeout(() => cut(shot.next), shot.delay);
+                }
+
+                if (instant) setTimeout(() => next.classList.remove('cut'), 100);
+            }, instant ? 400 : 2000);
+        }
+
+        /* ═══════════════════════════════════════
+           INIT
+           ═══════════════════════════════════════ */
+        setTimeout(() => {
+            document.getElementById('time').classList.add('show');
+            document.getElementById('counter').classList.add('show');
+            document.getElementById('hint').classList.add('show');
+        }, 1200);
+
+        setTimeout(() => document.getElementById('s1t').classList.add('reveal'), 1600);
+
+        /* ═══════════════════════════════════════
+           INTERACTIONS
+           ═══════════════════════════════════════ */
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (current === 1) cut(2);
+                else if (current === 4) cut(5);
+            }
+        });
+
+        document.getElementById('s4').addEventListener('click', () => {
+            if (current === 4) cut(5);
+        });
+
+        document.getElementById('yes').addEventListener('click', () => cut(14, true));
+        document.getElementById('no').addEventListener('click', () => cut(12, true));
+        document.getElementById('yes2').addEventListener('click', () => cut(14, true));
+        document.getElementById('yes3').addEventListener('click', () => cut(14, true));
+
+        /* ═══════════════════════════════════════
+           TIMECODE
+           ═══════════════════════════════════════ */
+        function updateTime() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('time').textContent = `${h}:${m} AM`;
+        }
+        updateTime();
+        setInterval(updateTime, 60000);
+    </script>
+
+</body>
+
+</html>
